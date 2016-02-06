@@ -10,13 +10,17 @@ describe('All Tests', function() {
   });
 
   after(function() {});
-
+  require('./tests/classes/ServerlessEndpointTest');
+  require('./tests/classes/ServerlessFunctionTest');
+  require('./tests/classes/ServerlessModuleTest');
+  require('./tests/classes/ServerlessComponentTest');
+  require('./tests/classes/ServerlessProjectTest');
+  require('./tests/classes/ServerlessStateTest');
   require('./tests/actions/TestPluginCustom');
   require('./tests/actions/TestDefaultActionHook');
-  require('./tests/actions/ProjectCreate');
   require('./tests/actions/StageCreate');
   require('./tests/actions/RegionCreate');
-  require('./tests/actions/ModuleInstall');
+  require('./tests/actions/ComponentCreate');
   require('./tests/actions/ModuleCreate');
   require('./tests/actions/FunctionCreate');
   require('./tests/actions/EnvList');
@@ -26,5 +30,9 @@ describe('All Tests', function() {
   require('./tests/actions/FunctionRun');
   require('./tests/actions/FunctionDeploy');
   require('./tests/actions/EndpointDeploy');
-
+  require('./tests/actions/ProjectInit');
+  require('./tests/actions/ProjectInstall');
+  require('./tests/actions/ProjectLifeCycle.js');
+  require('./tests/actions/FunctionInvoke.js');
+  require('./tests/actions/FunctionLogs.js');
 });

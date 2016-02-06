@@ -5,11 +5,11 @@
  */
 
 let Serverless = require('../../../lib/Serverless.js'),
-    path       = require('path'),
-    utils      = require('../../../lib/utils/index'),
-    assert     = require('chai').assert,
-    testUtils  = require('../../test_utils'),
-    config     = require('../../config');
+  path       = require('path'),
+  utils      = require('../../../lib/utils/index'),
+  assert     = require('chai').assert,
+  testUtils  = require('../../test_utils'),
+  config     = require('../../config');
 
 let serverless;
 
@@ -19,32 +19,34 @@ let serverless;
  */
 
 let validateEvent = function(evt) {
-  assert.equal(true, typeof evt.function != 'undefined');
-  assert.equal(true, typeof evt.function.event != 'undefined');
-  assert.equal(true, typeof evt.result != 'undefined');
-  assert.equal(true, typeof evt.function.handler != 'undefined');
+  assert.equal(true, typeof evt.options.path != 'undefined');
+  assert.equal(true, typeof evt.data.result != 'undefined');
+  assert.equal(true, evt.data.result.status === 'success');
 };
 
 describe('Test Action: Function Run', function() {
 
   before(function(done) {
     this.timeout(0);
+    testUtils.createTestProject(config, ['nodejscomponent'])
+      .then(projPath => {
 
-    testUtils.createTestProject(config, ['moduleone/simple'])
-        .then(projPath => {
+        this.timeout(0);
 
-          this.timeout(0);
+        process.chdir(projPath);
 
-          process.chdir(projPath);
+        serverless = new Serverless({
+          interactive: true,
+          awsAdminKeyId:     config.awsAdminKeyId,
+          awsAdminSecretKey: config.awsAdminSecretKey,
+          projectPath: projPath
+        });
 
-          serverless = new Serverless({
-            interactive: true,
-            awsAdminKeyId:     config.awsAdminKeyId,
-            awsAdminSecretKey: config.awsAdminSecretKey
-          });
-
+        return serverless.state.load()
+          .then(function() {
           done();
         });
+      });
   });
 
   after(function(done) {
@@ -55,37 +57,19 @@ describe('Test Action: Function Run', function() {
     it('should run the function with no errors', function(done) {
 
       this.timeout(0);
+      let options = {
+        path: 'nodejscomponent/module1/function1'
+      };
 
-      serverless.actions.functionRun({
-        path: 'moduleone/simple#one'
-      })
-          .then(function(evt) {
-            validateEvent(evt);
-            assert.equal(true, evt.result.status == 'success');
-            done();
-          })
-          .catch(e => {
-            done(e);
-          });
-    });
-  });
+      serverless.actions.functionRun(options)
+        .then(function(evt) {
 
-  describe('Function Run w/ Name', function() {
-    it('should run the function with no errors', function(done) {
-
-      this.timeout(0);
-
-      serverless.actions.functionRun({
-            name: 'one'
-          })
-          .then(function(evt) {
-            validateEvent(evt);
-            assert.equal(true, evt.result.status == 'success');
-            done();
-          })
-          .catch(e => {
-            done(e);
-          });
+          validateEvent(evt);
+          done();
+        })
+        .catch(e => {
+          done(e);
+        });
     });
   });
 

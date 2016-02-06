@@ -2,7 +2,7 @@
 
 /**
  * Test: Function Create Action
- * - Creates a new project in your system's temp directory
+ * - Creates a new private in your system's temp directory
  * - Creates a new Function inside the "users" module
  */
 
@@ -21,9 +21,9 @@ let serverless;
  */
 
 let validateEvent = function(evt) {
-  assert.equal(true, typeof evt.module != 'undefined');
-  assert.equal(true, typeof evt.function != 'undefined');
-  assert.equal(true, typeof evt.runtime != 'undefined');
+  assert.equal(true, typeof evt.options.component != 'undefined');
+  assert.equal(true, typeof evt.options.module != 'undefined');
+  assert.equal(true, typeof evt.options.function != 'undefined');
 };
 
 describe('Test action: Function Create', function() {
@@ -32,11 +32,17 @@ describe('Test action: Function Create', function() {
     this.timeout(0);
     testUtils.createTestProject(config)
         .then(projPath => {
+
           process.chdir(projPath);
+
           serverless = new Serverless({
             interactive: false,
+            projectPath: projPath
           });
-          done();
+
+          return serverless.state.load().then(function() {
+            done();
+          });
         });
   });
 
@@ -48,18 +54,20 @@ describe('Test action: Function Create', function() {
 
     it('create a new Function inside the users Module', function(done) {
       this.timeout(0);
-      let event = {
-        module:    'moduleone',
-        function:  'new',
-        runtime:   'nodejs'
+      let evt = {
+        options: {
+          component: 'nodejscomponent',
+          module:    'module1',
+          function:  'new'
+        }
       };
 
-      serverless.actions.functionCreate(event)
+      serverless.actions.functionCreate(evt)
           .then(function(evt) {
             validateEvent(evt);
-            let functionJson = utils.readAndParseJsonSync(path.join(evt.function.pathFunction, 's-function.json'));
-            assert.equal(true, typeof functionJson.functions.new != 'undefined');
-            assert.equal(true, functionJson.functions.new.endpoints.length);
+            let functionJson = utils.readAndParseJsonSync(path.join(serverless.config.projectPath, 'nodejscomponent', 'module1', 'function1', 's-function.json'));
+            assert.equal(true, typeof functionJson.name != 'undefined');
+            assert.equal(true, functionJson.endpoints.length);
             done();
           })
           .catch(e => {

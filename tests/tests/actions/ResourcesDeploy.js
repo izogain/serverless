@@ -2,8 +2,8 @@
 
 /**
  * Test: Resources Deploy Action
- * - Creates a new project in your system's temp directory
- * - Makes a tiny update to the project's CF template
+ * - Creates a new private in your system's temp directory
+ * - Makes a tiny update to the private's CF template
  * - Deploy new CF template
  * - Deploy/Rollback the original CF template for cleaning
  */
@@ -18,7 +18,6 @@ let Serverless = require('../../../lib/Serverless.js'),
     config     = require('../../config');
 
 let serverless;
-let globalProjPath;
 
 /**
  * Validate Event
@@ -26,10 +25,9 @@ let globalProjPath;
  */
 
 let validateEvent = function(evt) {
-
-  assert.equal(true, typeof evt.region != 'undefined');
-  assert.equal(true, typeof evt.stage != 'undefined');
-
+  assert.equal(true, typeof evt.options.region !== 'undefined');
+  assert.equal(true, typeof evt.options.stage !== 'undefined');
+  assert.equal(true, typeof evt.data !== 'undefined');
 };
 
 describe('Test action: Resources Deploy', function() {
@@ -38,23 +36,31 @@ describe('Test action: Resources Deploy', function() {
     this.timeout(0);
     testUtils.createTestProject(config)
         .then(projPath => {
+
           process.chdir(projPath);
+
           serverless = new Serverless({
             interactive: false,
             awsAdminKeyId:     config.awsAdminKeyId,
-            awsAdminSecretKey: config.awsAdminSecretKey
+            awsAdminSecretKey: config.awsAdminSecretKey,
+            projectPath: projPath
           });
 
-          globalProjPath = projPath;
-          let CfTemplatePath = path.join(projPath, 'cloudformation', 'resources-cf.json');
-          let CfTemplateJson = SUtils.readAndParseJsonSync(CfTemplatePath);
+          return serverless.init()
+            .then(function() {
 
-          CfTemplateJson.Resources.testBucket = { "Type" : "AWS::S3::Bucket" };
+            SUtils.sDebug('Adding test bucket resource');
 
+            let newProject = serverless.state.project.get();
+            // adding new Module resource
+            newProject.components.nodejscomponent.modules.module1.cloudFormation.resources['testBucket' + (new Date).getTime().toString()] = { "Type" : "AWS::S3::Bucket" };
+            serverless.state.set({project: newProject});
 
-          fs.writeFileSync(CfTemplatePath, JSON.stringify(CfTemplateJson, null, 2));
-
-          done();
+            return serverless.state.save()
+              .then(function() {
+                done();
+              });
+          });
         });
   });
 
@@ -65,34 +71,21 @@ describe('Test action: Resources Deploy', function() {
   describe('Resources Deploy positive tests', function() {
 
     it('deploys an updated CF template', function(done) {
+
       this.timeout(0);
-      let event = {
+      let evt = {
         stage:      config.stage,
         region:     config.region,
+        noExeCf:    config.noExecuteCf
       };
 
-      serverless.actions.resourcesDeploy(event)
+      serverless.actions.resourcesDeploy(evt)
           .then(function(evt) {
 
-            // Validate Event
+            // Validate Evt
             validateEvent(evt);
+            done();
 
-            SUtils.sDebug('Rolling back to the original s-test-prj CF template');
-
-            // roll back
-            let CfTemplatePath = path.join(globalProjPath, 'cloudformation', 'resources-cf.json');
-            let CfTemplateJson = SUtils.readAndParseJsonSync(CfTemplatePath);
-
-            delete CfTemplateJson.Resources.testBucket;
-
-            fs.writeFileSync(CfTemplatePath, JSON.stringify(CfTemplateJson, null, 2));
-
-            serverless.actions.resourcesDeploy(evt)
-                .then(function(evt) {
-                  // Validate Event
-                  validateEvent(evt);
-                  done();
-                });
           })
           .catch(e => {
             done(e);

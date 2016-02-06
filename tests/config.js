@@ -3,9 +3,7 @@
 const path = require('path');
 
 // Require ENV lets, can also set ENV lets in your IDE
-require('dotenv').config({path: path.join(__dirname, '.env'), silent: true});
-
-process.env.DEBUG = '*';
+require('dotenv').config({ path: path.join(__dirname, '.env'), silent: true });
 
 let config = {
   notifyEmail:          process.env.TEST_SERVERLESS_EMAIL,
